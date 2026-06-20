@@ -1,20 +1,25 @@
-
 """
 Iris Species Predictor
 -----------------------
 A mini AI/ML project: Python (Flask + scikit-learn) backend
 serving predictions to an HTML/CSS/JS frontend.
 
+Folder structure (flat — no templates/ folder):
+    iris-predictor/
+    ├── app.py
+    ├── index.html
+    └── requirements.txt
+
 Run:
-    pip install flask scikit-learn
+    pip install -r requirements.txt
     python app.py
 
 Then open http://127.0.0.1:5000 in your browser.
 """
 
-from flask imp
-from flask import Flask, request, jsonify, send_from_directory
 import os
+from flask import Flask, request, jsonify, send_from_directory
+from sklearn.datasets import load_iris
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 
@@ -40,13 +45,10 @@ accuracy = model.score(X_test, y_test)
 print(f"Model trained. Test accuracy: {accuracy:.2%}")
 
 
-app = Flask(__name__)
-
 @app.route("/")
 def home():
+    """Serve index.html directly from the project root (no templates/ folder)."""
     return send_from_directory(os.getcwd(), "index.html")
-@app.route("/")
-
 
 
 @app.route("/predict", methods=["POST"])
@@ -88,4 +90,4 @@ def predict():
 
 if __name__ == "__main__":
     app.run(debug=True)
-  
+    
