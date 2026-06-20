@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Iris Predictor — Python + ML Backend</title>
+<style>
+  :root{
+    --ink:#10231a;
+    --paper:#f4f1ea;
+    --accent:#3fae6a;
+    --line:#22382c;
+    --mono:'JetBrains Mono','Courier New', monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:40px 18px 60px;
+  }
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin-bottom:8px;
+  }
+  h1{ font-size:30px; font-weight:700; letter-spacing:-0.5px; }
+  p.sub{ color:#9fae9f; font-size:14px; margin-top:8px; max-width:420px; text-align:center; }
+
+  main{
+    margin-top:30px;
+    width:100%;
+    max-width:420px;
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+  }
+
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  label{
+    font-family:var(--mono);
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:#8a9a8a;
+  }
+  input[type=range]{ accent-color:var(--accent); }
+  .field-value{
+    font-family:var(--mono);
+    font-size:13px;
+    color:var(--accent);
+  }
+
+  button{
+    font-family:var(--mono);
+    font-size:14px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    background:var(--accent);
+    color:#0d1117;
+    font-weight:700;
+    border:none;
+    padding:14px;
+    border-radius:4px;
+    cursor:pointer;
+    margin-top:6px;
+  }
+  button:hover{ opacity:0.88; }
+
+  .status{ font-family:var(--mono); font-size:12px; color:#6b7280; min-height:16px; text-align:center; }
+
+  .result{
+    display:none;
+    border-top:1px solid var(--line);
+    padding-top:18px;
+    flex-direction:column;
+    align-items:center;
+    gap:14px;
+  }
+  .species{
+    font-size:30px;
+    font-weight:800;
+    color:var(--accent);
+    text-transform:capitalize;
+  }
+  .confidence{ font-family:var(--mono); font-size:12px; color:#9fae9f; }
+
+  .bars{ width:100%; display:flex; flex-direction:column; gap:8px; }
+  .bar-row{ display:grid; grid-template-columns:90px 1fr 44px; gap:10px; align-items:center; }
+  .bar-row span{ font-family:var(--mono); font-size:11px; color:#8a9a8a; text-transform:capitalize; }
+  .bar-track{ height:6px; background:#1c2820; border-radius:3px; overflow:hidden; }
+  .bar-fill{ height:100%; background:var(--accent); width:0%; transition:width .5s ease; }
+
+  footer{
+    margin-top:40px;
+    font-family:var(--mono);
+    font-size:11px;
+    color:#4b5950;
+    text-align:center;
+  }
+</style>
+</head>
+<body>
+
+<div class="eyebrow">Mini Project — Python ML Backend</div>
+<h1>Iris Predictor</h1>
+<p class="sub">Adjust the flower measurements below. A Random Forest model trained in Python predicts the species in real time.</p>
+
+<main>
+  <div class="field">
+    <label>Sepal Length (cm) — <span class="field-value" id="sepalLengthVal">5.1</span></label>
+    <input type="range" id="sepalLength" min="4" max="8" step="0.1" value="5.1" />
+  </div>
+  <div class="field">
+    <label>Sepal Width (cm) — <span class="field-value" id="sepalWidthVal">3.5</span></label>
+    <input type="range" id="sepalWidth" min="2" max="4.5" step="0.1" value="3.5" />
+  </div>
+  <div class="field">
+    <label>Petal Length (cm) — <span class="field-value" id="petalLengthVal">1.4</span></label>
+    <input type="range" id="petalLength" min="1" max="7" step="0.1" value="1.4" />
+  </div>
+  <div class="field">
+    <label>Petal Width (cm) — <span class="field-value" id="petalWidthVal">0.2</span></label>
+    <input type="range" id="petalWidth" min="0.1" max="2.5" step="0.1" value="0.2" />
+  </div>
+
+  <button id="predictBtn">Predict Species</button>
+  <div class="status" id="status"></div>
+
+  <div class="result" id="result">
+    <div class="species" id="speciesText">–</div>
+    <div class="confidence" id="confidenceText"></div>
+    <div class="bars" id="bars"></div>
+  </div>
+</main>
+
+<footer>python (flask + scikit-learn) backend · html/css/js frontend</footer>
+
+<script>
+  const sliders = ["sepalLength", "sepalWidth", "petalLength", "petalWidth"];
+  sliders.forEach(id => {
+    const input = document.getElementById(id);
+    const label = document.getElementById(id + "Val");
+    input.addEventListener("input", () => { label.textContent = input.value; });
+  });
+
+  const predictBtn = document.getElementById("predictBtn");
+  const statusEl = document.getElementById("status");
+  const resultEl = document.getElementById("result");
+  const speciesText = document.getElementById("speciesText");
+  const confidenceText = document.getElementById("confidenceText");
+  const barsEl = document.getElementById("bars");
+
+  predictBtn.addEventListener("click", async () => {
+    statusEl.textContent = "asking the model…";
+
+    const payload = {
+      sepal_length: document.getElementById("sepalLength").value,
+      sepal_width: document.getElementById("sepalWidth").value,
+      petal_length: document.getElementById("petalLength").value,
+      petal_width: document.getElementById("petalWidth").value,
+    };
+
+    try {
+      const res = await fetch("/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      if (data.error) {
+        statusEl.textContent = data.error;
+        return;
+      }
+
+      renderResult(data);
+      statusEl.textContent = "done";
+    } catch (err) {
+      statusEl.textContent = "could not reach the server — is app.py running?";
+    }
+  });
+
+  function renderResult(data) {
+    resultEl.style.display = "flex";
+    speciesText.textContent = data.species;
+    confidenceText.textContent = `${data.confidence}% confidence`;
+
+    barsEl.innerHTML = "";
+    Object.entries(data.probabilities).forEach(([name, pct]) => {
+      const row = document.createElement("div");
+      row.className = "bar-row";
+      row.innerHTML = `
+        <span>${name}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+        <span>${pct}%</span>
+      `;
+      barsEl.appendChild(row);
+    });
+  }
+</script>
+
+</body>
+</html>
