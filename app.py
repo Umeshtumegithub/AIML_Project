@@ -12,8 +12,9 @@ Run:
 Then open http://127.0.0.1:5000 in your browser.
 """
 
-from flask import Flask, request, jsonify, render_template
-from sklearn.datasets import load_iris
+from flask imp
+from flask import Flask, request, jsonify, send_from_directory
+import os
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 
@@ -39,10 +40,13 @@ accuracy = model.score(X_test, y_test)
 print(f"Model trained. Test accuracy: {accuracy:.2%}")
 
 
+app = Flask(__name__)
+
 @app.route("/")
 def home():
-    """Serve the frontend page."""
-    return render_template("index.html")
+    return send_from_directory(os.getcwd(), "index.html")
+@app.route("/")
+
 
 
 @app.route("/predict", methods=["POST"])
